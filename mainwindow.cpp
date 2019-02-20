@@ -8,6 +8,7 @@
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QMessageBox>
+#include <QTextStream>
 
 main_window::main_window(QWidget *parent)
     : QMainWindow(parent)
@@ -38,9 +39,8 @@ void main_window::select_directory()
 {
     QString dir = QFileDialog::getExistingDirectory(this, "Select Directory for Scanning",
                                                     QString(), QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
-    printOutSizeGroups(getSizeGroups(getFilesList(dir)));
-   // printOutFileGroups(getFileGroups(getSizeGroups(getFilesList(dir))));
-    //scan_directory(dir);
+    printOutFileGroups(getFileGroups(getSizeGroups(getFilesList(dir))));
+    scan_directory(dir);
 }
 
 void main_window::scan_directory(QString const& dir)

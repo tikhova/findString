@@ -19,18 +19,20 @@ bool isExistingDir(QString path) {
 
 QFileInfoList getFilesList(QString dirPath) {
     QDir dir = QDir(dirPath);
-    QFileInfoList filesList = QDir(dirPath).entryInfoList();
-    QFileInfoList dirList;
-    //const int listSize = filesList.size();
+    QFileInfoList filesList = dir.entryInfoList();
+    QStringList dirList;
     for (int i = 0; i != filesList.size(); ++i) {
         if (filesList.at(i).isDir()) {
-            dirList.push_back(filesList.at(i));
+            if (filesList.at(i).canonicalFilePath().length() > dirPath.length()) {
+                dirList.push_back(filesList.at(i).filePath());
+            }
             filesList.removeAt(i);
+            --i;
         }
     }
     const int dirListSize = dirList.size();
     for (int i = 0; i != dirListSize; ++i) {
-        filesList.append(getFilesList(dirList.at(i).path()));
+        filesList.append(getFilesList(dirList.at(i)));
     }
     return filesList;
 }
@@ -41,15 +43,14 @@ std::map<long long, QFileInfoList> getSizeGroups(const QFileInfoList & list) {
     long long size = 0;
     for (int i = 0; i != listSize; ++i) {
         size = list.at(i).size();
-        if (result.find(size) == result.end()) {
+        if (result.find(size) == result.end())
             result.insert(std::pair<long long, QFileInfoList>(size, QFileInfoList()));
-        }
         result.find(size)->second.push_back(list.at(i));
     }
     return result;
 }
 
-void printOutSizeGroups(const std::map<long long, QFileInfoList> & sizeGroupsMap) {
+void printOutSizeGroups(std::map<long long, QFileInfoList> const & sizeGroupsMap) {
     QString filename="result.txt";
     QFile file( filename );
     if ( file.open(QIODevice::ReadWrite) ) {
@@ -65,7 +66,7 @@ void printOutSizeGroups(const std::map<long long, QFileInfoList> & sizeGroupsMap
     }
 }
 
-void printOutFileGroups(const std::list<QFileInfoList> & sizeGroupsMap) {
+void printOutFileGroups( std::list<QFileInfoList> const & sizeGroupsMap) {
     QString filename="result.txt";
     QFile file( filename );
     if ( file.open(QIODevice::ReadWrite) ) {
@@ -81,43 +82,39 @@ void printOutFileGroups(const std::list<QFileInfoList> & sizeGroupsMap) {
 }
 
 long long getHash(QFileInfo const & fileInfo) {
-    std::ifstream file(fileInfo.path().toStdString(), std::ios::binary);
-    long long hash = 0;
-    std::string buffer;
-    std::hash<std::string> hash_fn;
-    while(!file.eof()) {
-        file.get(&buffer[0], 1024);
-        hash += hash_fn(buffer);
+QFile file(fileInfo.path());
+
+    if (file.open(QIODevice::ReadOnly)) {
+        QByteArray fileData = file.readAll();
+
+        QByteArray hashData = QCryptographicHash::hash(fileData,QCryptographicHash::Sha256);
+        return hashData.toLongLong();
     }
-    return hash;
+    return 0;
 }
 
 bool compareFiles(QFileInfo const & firstInfo, QFileInfo const & secondInfo) {
     std::ifstream first(firstInfo.path().toStdString(), std::ios::binary);
     std::ifstream second(secondInfo.path().toStdString(), std::ios::binary);
     std::string firstBuf, secondBuf;
-    while(!first.eof() && !second.eof()) {
+    do {
         first.get(&firstBuf[0], 1024);
         second.get(&secondBuf[0], 1024);
         if (firstBuf != secondBuf) {
             return false;
         }
-    }
+    } while(firstBuf.length() && secondBuf.length());
     return true;
 }
 
-QFileInfoList getFileGroup(QFileInfoList & list, QFileInfo const & file) {
+QFileInfoList getFileGroup(QFileInfoList & list) {
     QFileInfoList resulting_list;
+    QFileInfo file = list.front();
     long long mainHash = getHash(file);
     QFileInfoList result;
-    result.push_back(file);
     for(QFileInfoList::const_iterator lit = list.cbegin(); lit != list.cend(); ++lit) {
-        if (mainHash == getHash(*lit)) {
-            if (compareFiles(file, *lit)) {
+        if (mainHash == getHash(*lit) && compareFiles(file, *lit)) {
                 result.push_back(*lit);
-            } else {
-                resulting_list.push_back(*lit);
-            }
         } else {
             resulting_list.push_back(*lit);
         }
@@ -130,7 +127,7 @@ std::list<QFileInfoList> getFileGroups(std::map<long long, QFileInfoList> sizeLi
     std::list<QFileInfoList> result;
     for (std::map<long long, QFileInfoList>::iterator it = sizeList.begin(); it!= sizeList.end(); ++it) {
         while(!it->second.isEmpty()) {
-            result.push_back(getFileGroup(it->second, it->second.front()));
+            result.push_back(getFileGroup(it->second));
         }
     }
     return result;

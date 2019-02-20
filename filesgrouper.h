@@ -7,11 +7,11 @@
 
 QFileInfoList getFilesList(QString dirPath);
 
-std::map<long long, QFileInfoList> getSizeGroups(const QFileInfoList & list);
+std::map<long long, QFileInfoList> getSizeGroups(QFileInfoList const & list);
 std::list<QFileInfoList> getFileGroups(std::map<long long, QFileInfoList> sizeList);
 
-void printOutSizeGroups(const std::map<long long, QFileInfoList> & sizeGroupsMap);
-void printOutFileGroups(const std::list<QFileInfoList> & sizeGroupsMap);
+void printOutSizeGroups(std::map<long long, QFileInfoList> const & sizeGroupsMap);
+void printOutFileGroups(std::list<QFileInfoList> const & sizeGroupsMap);
 
 
 #endif // FILESGROUPER_H
