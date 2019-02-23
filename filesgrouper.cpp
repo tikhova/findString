@@ -1,99 +1,64 @@
 #include "filesgrouper.h"
 
 #include <QTextStream>
-#include <unordered_map>
-#include <QDir>
 #include <fstream>
-#include <bits/stl_pair.h>
-#include <iostream>
 #include <QCryptographicHash>
-#include <QDebug>
-#include <utility>
-#include <string>
-#include <functional>
+#include <QDirIterator>
+#include <QMessageBox>
+#include <QtDebug>
+#include <QElapsedTimer>
+#include <QThread>
 
-bool isExistingDir(QString path) {
-    QFileInfo file(path);
-    return file.exists() && file.isDir();
-}
-
-QFileInfoList getFilesList(QString dirPath) {
-    QDir dir = QDir(dirPath);
-    QFileInfoList filesList = dir.entryInfoList();
-    QStringList dirList;
-    for (int i = 0; i != filesList.size(); ++i) {
-        if (filesList.at(i).isDir()) {
-            if (filesList.at(i).canonicalFilePath().length() > dirPath.length()) {
-                dirList.push_back(filesList.at(i).filePath());
-            }
-            filesList.removeAt(i);
-            --i;
+QMap<qint64, QFileInfoList> FilesGrouper::computeSizeGroups() {
+    QMap<qint64, QFileInfoList> result;
+    QDirIterator it(DIRECTORY, QDir::Hidden | QDir::Files | QDir::NoSymLinks |
+                    QDir::NoDotAndDotDot, QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        if(QThread::currentThread()->isInterruptionRequested()){
+            qDebug()<<"computeSizeGroups: search interrupted";
+            emit finished(QDialog::Accepted);
+            return result;
         }
+        QFileInfo  file = it.next();
+        result[file.size()].push_back(file);
+        ++count;
     }
-    const int dirListSize = dirList.size();
-    for (int i = 0; i != dirListSize; ++i) {
-        filesList.append(getFilesList(dirList.at(i)));
-    }
-    return filesList;
+    emit filesCounted(count);
+    return result;
 }
 
-std::map<long long, QFileInfoList> getSizeGroups(const QFileInfoList & list) {
-    std::map<long long, QFileInfoList> result;
-    const int listSize = list.size();
-    long long size = 0;
-    for (int i = 0; i != listSize; ++i) {
-        size = list.at(i).size();
-        if (result.find(size) == result.end())
-            result.insert(std::pair<long long, QFileInfoList>(size, QFileInfoList()));
-        result.find(size)->second.push_back(list.at(i));
+QByteArray FilesGrouper::getHash(QFileInfo const & fileInfo) {
+    if(QThread::currentThread()->isInterruptionRequested()){
+        qDebug()<<"getHash: search interrupted";
+        emit finished(QDialog::Accepted);
+        return nullptr;
+    }
+    QFile file(fileInfo.filePath());
+    if (!file.open(QIODevice::ReadOnly)) {
+        QMessageBox msg(QMessageBox::Information, "Msg",
+                        "Can't open " + file.fileName(), QMessageBox::Ok);
+        return nullptr;
+    }
+    QCryptographicHash hash(QCryptographicHash::Algorithm::Sha256);
+    hash.addData(&file);
+    return hash.result();
+}
+
+
+QMap<QByteArray, QFileInfoList> FilesGrouper::computeHashGroups(QFileInfoList const & list) {
+    QMap<QByteArray, QFileInfoList> result;
+    for (QFileInfo file: list) {
+        if(QThread::currentThread()->isInterruptionRequested()){
+            qDebug()<<"computeHashGroups: search interrupted";
+            emit finished(QDialog::Accepted);
+            return result;
+        }
+        result[getHash(file)].push_back(file);
     }
     return result;
 }
 
-void printOutSizeGroups(std::map<long long, QFileInfoList> const & sizeGroupsMap) {
-    QString filename="result.txt";
-    QFile file( filename );
-    if ( file.open(QIODevice::ReadWrite) ) {
-        QTextStream stream( &file );
-        for (std::map<long long, QFileInfoList>::const_iterator it = sizeGroupsMap.cbegin();
-             it != sizeGroupsMap.cend(); ++it) {
-            stream << it->first << ": " << endl;
-            for (QFileInfoList::const_iterator lit = it->second.cbegin(); lit != it->second.cend(); ++lit) {
-                stream << lit->filePath() << endl;
-            }
-            stream << endl;
-        }
-    }
-}
-
-void printOutFileGroups( std::list<QFileInfoList> const & sizeGroupsMap) {
-    QString filename="result.txt";
-    QFile file( filename );
-    if ( file.open(QIODevice::ReadWrite) ) {
-        QTextStream stream( &file );
-        for (std::list<QFileInfoList>::const_iterator it = sizeGroupsMap.cbegin();
-             it != sizeGroupsMap.cend(); ++it) {
-            for (QFileInfoList::const_iterator lit = it->cbegin(); lit != it->cend(); ++lit) {
-                stream << lit->filePath() << endl;
-            }
-            stream << endl;
-        }
-    }
-}
-
-long long getHash(QFileInfo const & fileInfo) {
-QFile file(fileInfo.path());
-
-    if (file.open(QIODevice::ReadOnly)) {
-        QByteArray fileData = file.readAll();
-
-        QByteArray hashData = QCryptographicHash::hash(fileData,QCryptographicHash::Sha256);
-        return hashData.toLongLong();
-    }
-    return 0;
-}
-
-bool compareFiles(QFileInfo const & firstInfo, QFileInfo const & secondInfo) {
+bool FilesGrouper::compareFiles(QFileInfo const & firstInfo, QFileInfo const & secondInfo) {
     std::ifstream first(firstInfo.path().toStdString(), std::ios::binary);
     std::ifstream second(secondInfo.path().toStdString(), std::ios::binary);
     std::string firstBuf, secondBuf;
@@ -107,28 +72,63 @@ bool compareFiles(QFileInfo const & firstInfo, QFileInfo const & secondInfo) {
     return true;
 }
 
-QFileInfoList getFileGroup(QFileInfoList & list) {
-    QFileInfoList resulting_list;
+QFileInfoList FilesGrouper::getFileGroup(QFileInfoList & list) {
+    QFileInfoList changedList;
     QFileInfo file = list.front();
-    long long mainHash = getHash(file);
-    QFileInfoList result;
-    for(QFileInfoList::const_iterator lit = list.cbegin(); lit != list.cend(); ++lit) {
-        if (mainHash == getHash(*lit) && compareFiles(file, *lit)) {
-                result.push_back(*lit);
-        } else {
-            resulting_list.push_back(*lit);
+    QFileInfoList group;
+    group.push_back(file);
+    if (list.size() > 1) {
+        for(QFileInfoList::const_iterator lit = list.cbegin() + 1; lit != list.cend(); ++lit) {
+            if(QThread::currentThread()->isInterruptionRequested()){
+                qDebug()<<"getFileGroup: search interrupted";
+                emit finished(QDialog::Accepted);
+                return group;
+            }
+            if (compareFiles(file, *lit)) {
+                    group.push_back(*lit);
+            } else {
+                changedList.push_back(*lit);
+            }
         }
     }
-    list = resulting_list;
+    list = changedList;
+    checked += group.size();
+    emit filesChecked(checked);
+    return group;
+}
+
+std::list<QFileInfoList> FilesGrouper::computeDuplicateGroups(QMap<qint64, QFileInfoList> sizeList) {
+    std::list<QFileInfoList> result;
+    for (QMap<qint64, QFileInfoList>::iterator it = sizeList.begin(); it!= sizeList.end(); ++it) {
+        if (it->size() > 1) {
+            if(QThread::currentThread()->isInterruptionRequested()){
+                qDebug()<<"computeDuplicateGroups: search interrupted";
+                emit finished(QDialog::Accepted);
+                return result;
+            }
+            QMap<QByteArray, QFileInfoList> hashGroups = computeHashGroups(*it);
+            for (QMap<QByteArray, QFileInfoList>::iterator i = hashGroups.begin(); i != hashGroups.end(); ++i) {
+                while (!i->isEmpty()) {
+                    if(QThread::currentThread()->isInterruptionRequested()){
+                        qDebug()<<"computeDuplicateGroups: search interrupted";
+                        emit finished(QDialog::Accepted);
+                        return result;
+                    }
+                    QFileInfoList res = getFileGroup(*i);
+                    if (res.size() > 1) {
+                        result.push_back(res);
+                    } else if (res.size() == 0) break;
+                }
+            }
+        }
+    }
     return result;
 }
 
-std::list<QFileInfoList> getFileGroups(std::map<long long, QFileInfoList> sizeList) {
-    std::list<QFileInfoList> result;
-    for (std::map<long long, QFileInfoList>::iterator it = sizeList.begin(); it!= sizeList.end(); ++it) {
-        while(!it->second.isEmpty()) {
-            result.push_back(getFileGroup(it->second));
-        }
-    }
-    return result;
+void FilesGrouper::computeDuplicateGroups() {
+    QElapsedTimer timer;
+    timer.start();
+    groups = computeDuplicateGroups(computeSizeGroups());
+    qDebug()<<"Computation time: " << timer.elapsed() << "ms.";
+    emit finished(QDialog::Accepted);
 }

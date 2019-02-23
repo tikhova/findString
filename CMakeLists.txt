@@ -8,6 +8,13 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 find_package(Qt5Widgets REQUIRED)
 
-
-add_executable(${PROJECT_NAME} "main.cpp" "mainwindow.h" "mainwindow.cpp"  "filesgrouper.cpp" "filesgrouper.h")
+add_executable(${PROJECT_NAME}
+    "main.cpp"
+    "mainwindow.h"
+    "mainwindow.cpp"
+    "filesgrouper.cpp"
+    "filesgrouper.h"
+    progressdialog.cpp
+    progressdialog.h
+    progressdialog.ui )
 qt5_use_modules(${PROJECT_NAME} Widgets)

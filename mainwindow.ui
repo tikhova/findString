@@ -29,6 +29,9 @@
     </property>
     <item>
      <widget class="QTreeWidget" name="treeWidget">
+      <property name="selectionMode">
+       <enum>QAbstractItemView::MultiSelection</enum>
+      </property>
       <attribute name="headerMinimumSectionSize">
        <number>100</number>
       </attribute>
@@ -37,12 +40,17 @@
       </attribute>
       <column>
        <property name="text">
-        <string>Filename</string>
+        <string>Group</string>
        </property>
       </column>
       <column>
        <property name="text">
-        <string>Size</string>
+        <string>File size</string>
+       </property>
+      </column>
+      <column>
+       <property name="text">
+        <string>Count</string>
        </property>
       </column>
      </widget>
@@ -55,7 +63,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>27</height>
+     <height>23</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -68,9 +76,8 @@
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
-     <string>Help</string>
+     <string>&amp;Help</string>
     </property>
-    <addaction name="actionAbout"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuHelp"/>
@@ -86,6 +93,8 @@
     <bool>false</bool>
    </attribute>
    <addaction name="actionScan_Directory"/>
+   <addaction name="separator"/>
+   <addaction name="actionDelete_Selected"/>
   </widget>
   <action name="actionScan_Directory">
    <property name="text">
@@ -97,9 +106,9 @@
     <string>&amp;Exit</string>
    </property>
   </action>
-  <action name="actionAbout">
+  <action name="actionDelete_Selected">
    <property name="text">
-    <string>About</string>
+    <string>Delete Selected Files</string>
    </property>
   </action>
  </widget>
