@@ -1,7 +1,6 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "filesgrouper.h"
-#include "progressdialog.h"
 
 #include <QCommonStyle>
 #include <QDesktopWidget>
@@ -38,6 +37,7 @@ main_window::main_window(QWidget *parent)
 main_window::~main_window() {}
 
 void main_window::select_directory() {
+    qDebug()<<"select directory";
     dir_path = QFileDialog::getExistingDirectory(this, "Select Directory for Scanning", QString(),
                                                  QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
 
@@ -47,10 +47,11 @@ void main_window::select_directory() {
     connect(thread.get(), SIGNAL (started()), grouper, SLOT (computeDuplicateGroups()));
 
     connect(grouper, SIGNAL (filesChecked(int)), ui->progressBar, SLOT (setValue(int)));
-    connect(grouper, SIGNAL (filesCounted(int)), ui->progressBar, SLOT(setMaximum(int)));
+    connect(grouper, SIGNAL (filesCounted(int)), ui->progressBar, SLOT (setMaximum(int)));
 
     connect(grouper, SIGNAL (finished(int)), this, SLOT (show_duplicates()));
     connect(grouper, SIGNAL (finished(int)), thread.get(), SLOT (quit()));
+    connect(ui->actionStop_search, &QAction::triggered, [=](){thread->requestInterruption();});
     thread->start();
 }
 
@@ -72,6 +73,13 @@ void main_window::show_duplicates() {
             gr->addChild(item);
         }
     }
+    disconnect(thread.get(), SIGNAL (started()), grouper, SLOT (computeDuplicateGroups()));
+
+    disconnect(grouper, SIGNAL (filesChecked(int)), ui->progressBar, SLOT (setValue(int)));
+    disconnect(grouper, SIGNAL (filesCounted(int)), ui->progressBar, SLOT(setMaximum(int)));
+
+    disconnect(grouper, SIGNAL (finished(int)), this, SLOT (show_duplicates()));
+    disconnect(grouper, SIGNAL (finished(int)), thread.get(), SLOT (quit()));
 }
 
 void main_window::delete_selected_files() {

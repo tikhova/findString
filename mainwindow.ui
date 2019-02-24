@@ -127,6 +127,7 @@
    <addaction name="separator"/>
    <addaction name="actionDelete_Selected"/>
    <addaction name="separator"/>
+   <addaction name="actionStop_search"/>
   </widget>
   <action name="actionScan_Directory">
    <property name="text">
@@ -141,6 +142,11 @@
   <action name="actionDelete_Selected">
    <property name="text">
     <string>Delete Selected Files</string>
+   </property>
+  </action>
+  <action name="actionStop_search">
+   <property name="text">
+    <string>Stop search</string>
    </property>
   </action>
  </widget>

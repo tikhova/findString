@@ -132,6 +132,6 @@ void FilesGrouper::computeDuplicateGroups() {
     QElapsedTimer timer;
     timer.start();
     groups = computeDuplicateGroups(computeSizeGroups());
-    qDebug()<<"Computation time: " << timer.elapsed() << "ms.";
+    qDebug()<<"Computation time: " << timer.elapsed() << "ms." << DIRECTORY;
     emit finished(QDialog::Accepted);
 }
