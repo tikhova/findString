@@ -14,7 +14,5 @@ add_executable(${PROJECT_NAME}
     "mainwindow.cpp"
     "filesgrouper.cpp"
     "filesgrouper.h"
-    progressdialog.cpp
-    progressdialog.h
-    progressdialog.ui )
+    "mainwindow.ui" )
 qt5_use_modules(${PROJECT_NAME} Widgets)

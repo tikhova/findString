@@ -120,6 +120,9 @@ std::list<QFileInfoList> FilesGrouper::computeDuplicateGroups(QMap<qint64, QFile
                     } else if (res.size() == 0) break;
                 }
             }
+        } else {
+            checked+=it->size();
+            emit filesChecked(checked);
         }
     }
     return result;

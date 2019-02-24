@@ -42,14 +42,12 @@ void main_window::select_directory() {
                                                  QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
 
     grouper = new FilesGrouper(dir_path);
-    ProgressDialog *progressWindow = new ProgressDialog(thread.get(), this);
-    connect(grouper, SIGNAL(filesChecked(int)), progressWindow, SLOT(update(int)));
-    connect(grouper, SIGNAL(filesCounted(int)), progressWindow, SLOT(setMaximum(int)));
-
     grouper->moveToThread(thread.get());
+
     connect(thread.get(), SIGNAL (started()), grouper, SLOT (computeDuplicateGroups()));
-    connect(thread.get(), SIGNAL(started()), progressWindow, SLOT (open()));
-    connect(grouper, SIGNAL(finished(int)), progressWindow, SLOT (done(int)));
+
+    connect(grouper, SIGNAL (filesChecked(int)), ui->progressBar, SLOT (setValue(int)));
+    connect(grouper, SIGNAL (filesCounted(int)), ui->progressBar, SLOT(setMaximum(int)));
 
     connect(grouper, SIGNAL (finished(int)), this, SLOT (show_duplicates()));
     connect(grouper, SIGNAL (finished(int)), thread.get(), SLOT (quit()));
@@ -57,12 +55,12 @@ void main_window::select_directory() {
 }
 
 void main_window::show_duplicates() {
-    auto list = grouper->getDuplicateGroups();
+    qDebug()<<"show_duplicates";
     QDir dir(dir_path);
     ui->treeWidget->clear();
     setWindowTitle(dir_path);
     int current_group = 0;
-    for (auto group : list) {
+    for (auto group : grouper->getDuplicateGroups()) {
         QTreeWidgetItem* gr = new QTreeWidgetItem(ui->treeWidget);
         gr->setText(0, QString("Group ") + QString::number(++current_group));
         gr->setText(1, QString::number(group.front().size()));
