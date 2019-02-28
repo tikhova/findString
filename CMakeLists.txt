@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 
-project(findDuplicates)
+project(findString)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
@@ -12,7 +12,8 @@ add_executable(${PROJECT_NAME}
     "main.cpp"
     "mainwindow.h"
     "mainwindow.cpp"
-    "filesgrouper.cpp"
-    "filesgrouper.h"
-    "mainwindow.ui" )
+    "mainwindow.ui"
+    indexator.cpp
+    indexator.h
+    trigram.h)
 qt5_use_modules(${PROJECT_NAME} Widgets)
