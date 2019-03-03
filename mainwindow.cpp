@@ -63,7 +63,7 @@ void main_window::findString() {
         iter.next();
         QTreeWidgetItem* gr = new QTreeWidgetItem(ui->treeWidget);
         gr->setText(0, QString(dir.relativeFilePath(iter.key())));
-        gr->setText(1, QString::number(iter.value().size()));
+        gr->setText(1, QString::number(QFile(iter.key()).size()));
         ui->treeWidget->addTopLevelItem(gr);
     }
     qDebug() << "find string finished"  << ui->lineEdit->text();
