@@ -28,6 +28,33 @@
      <number>0</number>
     </property>
     <item>
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <property name="sizeConstraint">
+       <enum>QLayout::SetDefaultConstraint</enum>
+      </property>
+      <item>
+       <widget class="QLineEdit" name="lineEdit">
+        <property name="inputMask">
+         <string/>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
+        <property name="placeholderText">
+         <string notr="true"/>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="searchButton">
+        <property name="text">
+         <string>Search</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item>
      <widget class="QProgressBar" name="progressBar">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -74,12 +101,7 @@
       </attribute>
       <column>
        <property name="text">
-        <string>Group</string>
-       </property>
-      </column>
-      <column>
-       <property name="text">
-        <string>File size</string>
+        <string>File</string>
        </property>
       </column>
       <column>
@@ -90,25 +112,6 @@
      </widget>
     </item>
    </layout>
-  </widget>
-  <widget class="QMenuBar" name="menuBar">
-   <property name="geometry">
-    <rect>
-     <x>0</x>
-     <y>0</y>
-     <width>800</width>
-     <height>23</height>
-    </rect>
-   </property>
-   <widget class="QMenu" name="menuFile">
-    <property name="title">
-     <string>Fi&amp;le</string>
-    </property>
-    <addaction name="actionScan_Directory"/>
-    <addaction name="separator"/>
-    <addaction name="actionExit"/>
-   </widget>
-   <addaction name="menuFile"/>
   </widget>
   <widget class="QToolBar" name="toolBar">
    <property name="windowTitle">
@@ -125,8 +128,6 @@
    </attribute>
    <addaction name="actionScan_Directory"/>
    <addaction name="separator"/>
-   <addaction name="actionDelete_Selected"/>
-   <addaction name="separator"/>
    <addaction name="actionStop_search"/>
   </widget>
   <action name="actionScan_Directory">
@@ -137,11 +138,6 @@
   <action name="actionExit">
    <property name="text">
     <string>&amp;Exit</string>
-   </property>
-  </action>
-  <action name="actionDelete_Selected">
-   <property name="text">
-    <string>Delete Selected Files</string>
    </property>
   </action>
   <action name="actionStop_search">

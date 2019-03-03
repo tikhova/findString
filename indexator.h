@@ -5,23 +5,32 @@
 
 #include <QString>
 #include <QDir>
-#include <QSet>
 #include <QMap>
+#include <set>
+#include <QFileSystemWatcher>
+
+#include <bits/unique_ptr.h>
 
 class indexator : public QObject {
 Q_OBJECT
 public:
-    indexator(QString const &dir) : DIRECTORY(dir) {}
+    bool indexationFinished = false;
+    indexator() : fsw(new QFileSystemWatcher) { }
 public slots:
-
+    void getTrigrams();
+    void setDirectory(QString const &dir) {
+        DIRECTORY = dir;connect(fsw.get(), SIGNAL(directoryChanged(QString)), this, SLOT(getTrigrams()));
+        connect(fsw.get(), SIGNAL(fileChanged(QString)), this, SLOT(getTrigrams(QString)));
+    }
+    QMap<QString, QStringList> findString(QString const &);
+    void getTrigrams(QString const &);
 private:
     int count = 0;
     int checked = 0;
     QString DIRECTORY;
-    qint64 const CHUNK_SIZE = 1024;
-    QMap<QString, QSet<trigram>> trigramsMap;
-    void getTrigrams();
-    QSet<trigram> getTrigrams(QFileInfo const &);
+    size_t const CHUNK_SIZE = 1024 * 64;
+    std::unique_ptr<QFileSystemWatcher> fsw;
+    QMap<QString, std::set<trigram>> trigramsMap;
 
 signals:
     void filesCounted(int);

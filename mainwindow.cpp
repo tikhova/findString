@@ -2,6 +2,7 @@
 #include "ui_mainwindow.h"
 
 #include <QCommonStyle>
+#include <QDesktopServices>
 #include <QDesktopWidget>
 #include <QDir>
 #include <QFileDialog>
@@ -11,43 +12,63 @@
 #include <QThread>
 #include <QtDebug>
 
-main_window::main_window(QWidget *parent)
-    : QMainWindow(parent)
-    , ui(new Ui::MainWindow) {
+#include "indexator.h"
+
+main_window::main_window(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow),
+    thread(new QThread()) {
     ui->setupUi(this);
     setGeometry(QStyle::alignedRect(Qt::LeftToRight, Qt::AlignCenter,
                                     size(), qApp->desktop()->availableGeometry()));
-    setWindowTitle(QString("Find Duplicates"));
+    setWindowTitle(QString("Find String"));
     ui->treeWidget->header()->setSectionResizeMode(0, QHeaderView::Stretch);
     ui->treeWidget->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
-    ui->treeWidget->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
     ui->treeWidget->header()->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
-
+connect(ui->treeWidget, SIGNAL(itemDoubleClicked(QTreeWidgetItem*, int)), this, SLOT(open_file(QTreeWidgetItem*)));
     QCommonStyle style;
     ui->actionScan_Directory->setIcon(style.standardIcon(QCommonStyle::SP_DialogOpenButton));
     ui->actionExit->setIcon(style.standardIcon(QCommonStyle::SP_DialogCloseButton));
 
     connect(ui->actionScan_Directory, &QAction::triggered, this, &main_window::select_directory);
     connect(ui->actionExit, &QAction::triggered, this, &QWidget::close);
+
+
+    connect(thread.get(), SIGNAL(started()), &ind, SLOT(getTrigrams()));
+    connect(ui->searchButton, SIGNAL(clicked()), this, SLOT(findString()));
+    connect(&ind, SIGNAL (filesCounted(int)), ui->progressBar, SLOT (setMaximum(int)));
+    connect(&ind, SIGNAL (filesChecked(int)), ui->progressBar, SLOT (setValue(int)));
+    connect(&ind, SIGNAL (finished(int)), thread.get(), SLOT (quit()));
+    connect(ui->actionStop_search,  &QAction::triggered, [=](){thread->requestInterruption();});
 }
 
 main_window::~main_window() {}
 
 void main_window::select_directory() {
-    qDebug()<<"select directory";
     dir_path = QFileDialog::getExistingDirectory(this, "Select Directory for Scanning", QString(),
                                                  QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
 
-//    grouper = new FilesGrouper(dir_path);
-//    grouper->moveToThread(thread.get());
+    qDebug()<<"select directory" << dir_path;
+    ind.setDirectory(dir_path);
+    ind.moveToThread(thread.get());
+    thread->start();
+}
 
-//    connect(thread.get(), SIGNAL (started()), grouper, SLOT (computeDuplicateGroups()));
+void main_window::findString() {
+    qDebug() << "find string" << ui->lineEdit->text();
+    thread->start();
+    ui->treeWidget->clear();
+    QMap<QString, QStringList> result = ind.findString(ui->lineEdit->text());
+    QMapIterator<QString, QStringList> iter(result);
+    QDir dir(dir_path);
+    while(iter.hasNext()) {
+        iter.next();
+        QTreeWidgetItem* gr = new QTreeWidgetItem(ui->treeWidget);
+        gr->setText(0, QString(dir.relativeFilePath(iter.key())));
+        gr->setText(1, QString::number(iter.value().size()));
+        ui->treeWidget->addTopLevelItem(gr);
+    }
+    qDebug() << "find string finished"  << ui->lineEdit->text();
+}
 
-//    connect(grouper, SIGNAL (filesChecked(int)), ui->progressBar, SLOT (setValue(int)));
-//    connect(grouper, SIGNAL (filesCounted(int)), ui->progressBar, SLOT (setMaximum(int)));
-
-//    connect(grouper, SIGNAL (finished(int)), this, SLOT (show_duplicates()));
-//    connect(grouper, SIGNAL (finished(int)), thread.get(), SLOT (quit()));
-//    connect(ui->actionStop_search, &QAction::triggered, [=](){thread->requestInterruption();});
-//    thread->start();
+void main_window::open_file(QTreeWidgetItem *item){
+    QDesktopServices::openUrl(QUrl("file:" + QDir(dir_path).absoluteFilePath(item->text(0))));
 }

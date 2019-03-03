@@ -13,7 +13,7 @@ add_executable(${PROJECT_NAME}
     "mainwindow.h"
     "mainwindow.cpp"
     "mainwindow.ui"
-    indexator.cpp
-    indexator.h
-    trigram.h)
+    "indexator.cpp"
+    "indexator.h"
+    "trigram.h")
 qt5_use_modules(${PROJECT_NAME} Widgets)

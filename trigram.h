@@ -13,4 +13,18 @@ struct trigram {
     }
 };
 
+    inline uint qHash(const trigram &t, uint seed = 0) {
+        return ((static_cast<uint>(t.symbols[0]) << (std::numeric_limits<decltype(t.symbols[0])>::digits << 1)) ^
+                (static_cast<uint>(t.symbols[1]) << std::numeric_limits<decltype(t.symbols[0])>::digits) ^
+                static_cast<uint>(t.symbols[2])) ^ seed;
+    }
+
+    inline bool operator==(const trigram& lhs, const trigram& rhs) {
+        return (lhs.symbols[0] == rhs.symbols[0] && lhs.symbols[1] == rhs.symbols[1] && lhs.symbols[2] == rhs.symbols[2]);
+    }
+
+    inline bool operator<(const trigram& lhs, const trigram& rhs) {
+        return (qHash(lhs) < qHash(rhs));
+    }
+
 #endif // TRIGRAM_H
