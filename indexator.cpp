@@ -31,6 +31,7 @@ void indexator::getTrigrams() {
 
     qDebug() << "files list computated";
 
+    int checked = 0;
     for(auto & file: files) {
         if (QThread::currentThread()->isInterruptionRequested()){
             qDebug()<<"getTrigrams: search interrupted";
@@ -38,6 +39,8 @@ void indexator::getTrigrams() {
             return;
         }
         getTrigrams(file.filePath());
+        ++checked;
+        emit filesChecked(checked);
     }
     qDebug() << "finish getTrigrams";
     indexationFinished = true;
@@ -51,7 +54,6 @@ void indexator::getTrigrams(QString const & file) {
     trigramsMap.erase(trigramsMap.find(file));
     char previous[2] = {0, 0};
     size_t count;
-    int checked = 0;
     while (fin.good()) {
         fin.read(buffer.data(), static_cast<std::streamsize>(CHUNK_SIZE));
         count = static_cast<size_t>(fin.gcount());
@@ -64,25 +66,15 @@ void indexator::getTrigrams(QString const & file) {
                 previous[1] = buffer[i];
             }
 
-            if (non_valid_char.find(buffer[i]) != non_valid_char.end()) {
-                ++checked;
-                emit filesChecked(checked);
-                return;
-            }
+            if (non_valid_char.find(buffer[i]) != non_valid_char.end()) return;
         }
 
         previous[0] = buffer[count - 2];
         previous[1] = buffer[count - 1];
 
-        if (result.size() > 200000) {
-            ++checked;
-            emit filesChecked(checked);
-            return;
-        }
+        if (result.size() > 200000) return;
     }
     trigramsMap.insert(file, result);
-    ++checked;
-    emit filesChecked(checked);
 }
 
 
