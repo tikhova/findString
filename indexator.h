@@ -25,8 +25,6 @@ public slots:
     QMap<QString, QStringList> findString(QString const &);
     void getTrigrams(QString const &);
 private:
-    int count = 0;
-    int checked = 0;
     QString DIRECTORY;
     size_t const CHUNK_SIZE = 1024 * 64;
     std::unique_ptr<QFileSystemWatcher> fsw;
