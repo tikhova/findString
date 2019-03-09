@@ -31,7 +31,6 @@ main_window::main_window(QWidget *parent) : QMainWindow(parent), ui(new Ui::Main
     connect(ui->actionScan_Directory, &QAction::triggered, this, &main_window::select_directory);
     connect(ui->actionExit, &QAction::triggered, this, &QWidget::close);
 
-    connect(thread.get(), SIGNAL(started()), &ind, SLOT(getTrigrams()));
     connect(ui->searchButton, SIGNAL(clicked()), this, SLOT(findString()));
     connect(&ind, SIGNAL (filesCounted(int)), ui->progressBar, SLOT (setMaximum(int)));
     connect(&ind, SIGNAL (filesChecked(int)), ui->progressBar, SLOT (setValue(int)));
@@ -48,6 +47,7 @@ void main_window::select_directory() {
     ind.setDirectory(dir_path);
     ind.moveToThread(thread.get());
     thread->start();
+    ind.getTrigrams();
 }
 
 void main_window::findString() {
