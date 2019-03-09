@@ -31,7 +31,6 @@ void indexator::getTrigrams() {
 
     qDebug() << "files list computated";
 
-    checked = 0;
     for(auto & file: files) {
         if (QThread::currentThread()->isInterruptionRequested()){
             qDebug()<<"getTrigrams: search interrupted";
@@ -52,6 +51,7 @@ void indexator::getTrigrams(QString const & file) {
     trigramsMap.erase(trigramsMap.find(file));
     char previous[2] = {0, 0};
     size_t count;
+    int checked = 0;
     while (fin.good()) {
         fin.read(buffer.data(), static_cast<std::streamsize>(CHUNK_SIZE));
         count = static_cast<size_t>(fin.gcount());
@@ -97,7 +97,7 @@ QMap<QString, QStringList> indexator::findString(QString const & string) {
     for (size_t i = 2; i < count; ++i)
         str_trigrams.insert(trigram(str[i - 2], str[i - 1], str[i]));
 
-    checked = 0;
+    int checked = 0;
     QMapIterator<QString, std::set<trigram>> iter(trigramsMap);
     while(iter.hasNext()) {
         if (QThread::currentThread()->isInterruptionRequested()){
