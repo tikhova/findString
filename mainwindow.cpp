@@ -31,7 +31,6 @@ main_window::main_window(QWidget *parent) : QMainWindow(parent), ui(new Ui::Main
     connect(ui->actionScan_Directory, &QAction::triggered, this, &main_window::select_directory);
     connect(ui->actionExit, &QAction::triggered, this, &QWidget::close);
 
-
     connect(thread.get(), SIGNAL(started()), &ind, SLOT(getTrigrams()));
     connect(ui->searchButton, SIGNAL(clicked()), this, SLOT(findString()));
     connect(&ind, SIGNAL (filesCounted(int)), ui->progressBar, SLOT (setMaximum(int)));
@@ -45,7 +44,6 @@ main_window::~main_window() {}
 void main_window::select_directory() {
     dir_path = QFileDialog::getExistingDirectory(this, "Select Directory for Scanning", QString(),
                                                  QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
-
     qDebug()<<"select directory" << dir_path;
     ind.setDirectory(dir_path);
     ind.moveToThread(thread.get());

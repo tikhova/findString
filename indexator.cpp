@@ -79,6 +79,7 @@ void indexator::getTrigrams(QString const & file) {
 
 
 QMap<QString, QStringList> indexator::findString(QString const & string) {
+    QMutexLocker locker(&mutex);
     emit filesChecked(0);
     emit filesCounted(trigramsMap.size());
     std::string str = string.toStdString();

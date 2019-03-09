@@ -8,6 +8,7 @@
 #include <QMap>
 #include <set>
 #include <QFileSystemWatcher>
+#include <QMutex>
 
 #include <bits/unique_ptr.h>
 
@@ -19,7 +20,8 @@ public:
 public slots:
     void getTrigrams();
     void setDirectory(QString const &dir) {
-        DIRECTORY = dir;connect(fsw.get(), SIGNAL(directoryChanged(QString)), this, SLOT(getTrigrams()));
+        DIRECTORY = dir;
+        connect(fsw.get(), SIGNAL(directoryChanged(QString)), this, SLOT(getTrigrams()));
         connect(fsw.get(), SIGNAL(fileChanged(QString)), this, SLOT(getTrigrams(QString)));
     }
     QMap<QString, QStringList> findString(QString const &);
@@ -29,6 +31,7 @@ private:
     size_t const CHUNK_SIZE = 1024 * 64;
     std::unique_ptr<QFileSystemWatcher> fsw;
     QMap<QString, std::set<trigram>> trigramsMap;
+    QMutex mutex;
 
 signals:
     void filesCounted(int);
