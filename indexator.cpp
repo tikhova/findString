@@ -9,7 +9,6 @@
 #include <QThread>
 
 void indexator::getTrigrams() {
-    QMutexLocker locker(&mutex);
     emit filesChecked(0);
     trigramsMap.clear();
     indexationFinished = false;
