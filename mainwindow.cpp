@@ -46,12 +46,13 @@ void main_window::select_directory() {
     qDebug()<<"select directory" << dir_path;
     ind.setDirectory(dir_path);
     ind.moveToThread(thread.get());
+    connect(thread.get(), SIGNAL(started()), &ind, SLOT(getTrigrams()));
     thread->start();
-    ind.getTrigrams();
 }
 
 void main_window::findString() {
     qDebug() << "find string" << ui->lineEdit->text();
+    disconnect(thread.get(), SIGNAL(started()), &ind, SLOT(getTrigrams()));
     thread->start();
     ui->treeWidget->clear();
     QMap<QString, QStringList> result = ind.findString(ui->lineEdit->text());

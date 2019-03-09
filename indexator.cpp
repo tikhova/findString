@@ -73,8 +73,8 @@ void indexator::getTrigrams(QString const & file) {
             }
         }
 
-        previous[0] = buffer[count - 2];
-        previous[1] = buffer[count - 1];
+        if (count >= 2) previous[0] = buffer[count - 2];
+        if (count >= 1) previous[1] = buffer[count - 1];
 
         if (result.size() > 200000) {
             mutex.lock();
