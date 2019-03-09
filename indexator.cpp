@@ -47,12 +47,10 @@ void indexator::getTrigrams() {
 }
 
 void indexator::getTrigrams(QString const & file) {
-    QMutexLocker locker(&mutex);
     static std::set<char> non_valid_char = {0, 8, 24, 0x7F};
     std::ifstream fin(file.toStdString(), std::ios::binary);
     std::vector<char> buffer(CHUNK_SIZE);
     std::set<trigram> result;
-    trigramsMap.erase(trigramsMap.find(file));
     char previous[2] = {0, 0};
     size_t count;
     while (fin.good()) {
@@ -67,17 +65,28 @@ void indexator::getTrigrams(QString const & file) {
                 previous[1] = buffer[i];
             }
 
-            if (non_valid_char.find(buffer[i]) != non_valid_char.end()) return;
+            if (non_valid_char.find(buffer[i]) != non_valid_char.end()) {
+                mutex.lock();
+                trigramsMap.erase(trigramsMap.find(file));
+                mutex.unlock();
+                return;
+            }
         }
 
         previous[0] = buffer[count - 2];
         previous[1] = buffer[count - 1];
 
-        if (result.size() > 200000) return;
+        if (result.size() > 200000) {
+            mutex.lock();
+            trigramsMap.erase(trigramsMap.find(file));
+            mutex.unlock();
+            return;
+        }
     }
+    mutex.lock();
     trigramsMap.insert(file, result);
+    mutex.unlock();
 }
-
 
 QMap<QString, QStringList> indexator::findString(QString const & string) {
     QMutexLocker locker(&mutex);
