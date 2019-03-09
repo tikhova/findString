@@ -9,6 +9,7 @@
 #include <QThread>
 
 void indexator::getTrigrams() {
+    QMutexLocker locker(&mutex);
     emit filesChecked(0);
     trigramsMap.clear();
     indexationFinished = false;
@@ -47,6 +48,7 @@ void indexator::getTrigrams() {
 }
 
 void indexator::getTrigrams(QString const & file) {
+    QMutexLocker locker(&mutex);
     static std::set<char> non_valid_char = {0, 8, 24, 0x7F};
     std::ifstream fin(file.toStdString(), std::ios::binary);
     std::vector<char> buffer(CHUNK_SIZE);
