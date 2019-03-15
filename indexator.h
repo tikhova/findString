@@ -16,22 +16,27 @@ class indexator : public QObject {
 Q_OBJECT
 public:
     bool indexationFinished = false;
-    indexator() : fsw(new QFileSystemWatcher) { }
-public slots:
-    void getTrigrams();
+    indexator() : fsw(new QFileSystemWatcher) {}
+//    inline QMap<QString, QStringList> getResultMap() { return resultMap; }
+    inline QMap<QString, std::set<trigram>> const & getTrigramsMap() {return trigramsMap;}
     void setDirectory(QString const &dir) {
         DIRECTORY = dir;
         connect(fsw.get(), SIGNAL(directoryChanged(QString)), this, SLOT(getTrigrams()));
         connect(fsw.get(), SIGNAL(fileChanged(QString)), this, SLOT(getTrigrams(QString)));
-    }
-    QMap<QString, QStringList> findString(QString const &);
+    }/*
+    inline void setString(const QString & str) {string = str;}*/
+    QMutex mutex;
+public slots:
+    void getTrigrams();
+//    void findString();
     void getTrigrams(QString const &);
 private:
     QString DIRECTORY;
     size_t const CHUNK_SIZE = 1024 * 64;
     std::unique_ptr<QFileSystemWatcher> fsw;
     QMap<QString, std::set<trigram>> trigramsMap;
-    QMutex mutex;
+//    QMap<QString, QStringList> resultMap;
+//    QString string;
 
 signals:
     void filesCounted(int);

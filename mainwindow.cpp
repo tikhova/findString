@@ -15,7 +15,8 @@
 #include "indexator.h"
 
 main_window::main_window(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow),
-    thread(new QThread()) {
+    index_thread(new QThread()), search_thread(new QThread()), fin(ind) {
+    // setup ui
     ui->setupUi(this);
     setGeometry(QStyle::alignedRect(Qt::LeftToRight, Qt::AlignCenter,
                                     size(), qApp->desktop()->availableGeometry()));
@@ -28,34 +29,56 @@ main_window::main_window(QWidget *parent) : QMainWindow(parent), ui(new Ui::Main
     ui->actionScan_Directory->setIcon(style.standardIcon(QCommonStyle::SP_DialogOpenButton));
     ui->actionExit->setIcon(style.standardIcon(QCommonStyle::SP_DialogCloseButton));
 
-    connect(ui->actionScan_Directory, &QAction::triggered, this, &main_window::select_directory);
+    // setup signals
     connect(ui->actionExit, &QAction::triggered, this, &QWidget::close);
+    /// index dir
+    connect(ui->actionScan_Directory, &QAction::triggered, this, &main_window::select_directory);
+    connect(&ind, SIGNAL (finished(int)), index_thread.get(), SLOT (quit()));
+    connect(index_thread.get(), SIGNAL(started()), &ind, SLOT(getTrigrams()));
 
-    connect(ui->searchButton, SIGNAL(clicked()), this, SLOT(findString()));
+    /// find string
+    connect(ui->searchButton, SIGNAL(clicked()), this, SLOT(select_string()));
+    connect(search_thread.get(), SIGNAL(started()), &fin, SLOT(findString()));
+    connect(&fin, SIGNAL(finished(int)), this, SLOT(printFindStringResult()));
+    connect(&fin, SIGNAL(finished(int)), search_thread.get(), SLOT (quit()));
+
+    /// progress bar
     connect(&ind, SIGNAL (filesCounted(int)), ui->progressBar, SLOT (setMaximum(int)));
     connect(&ind, SIGNAL (filesChecked(int)), ui->progressBar, SLOT (setValue(int)));
-    connect(&ind, SIGNAL (finished(int)), thread.get(), SLOT (quit()));
-    connect(ui->actionStop_search,  &QAction::triggered, [=](){thread->requestInterruption();});
+    connect(&fin, SIGNAL (filesCounted(int)), ui->progressBar, SLOT (setMaximum(int)));
+    connect(&fin, SIGNAL (filesChecked(int)), ui->progressBar, SLOT (setValue(int)));
+
+    /// on stop button
+    connect(ui->actionStop_search,  &QAction::triggered, this, &main_window::stop_index_thread);
+    connect(ui->actionStop_search,  &QAction::triggered, this, &main_window::stop_search_thread);
+
+    /// move to thread
+    ind.moveToThread(index_thread.get());
+    fin.moveToThread(search_thread.get());
 }
 
 main_window::~main_window() {}
 
 void main_window::select_directory() {
-    dir_path = QFileDialog::getExistingDirectory(this, "Select Directory for Scanning", QString(),
+    QString path = QFileDialog::getExistingDirectory(this, "Select Directory for Scanning", QString(),
                                                  QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
-    qDebug()<<"select directory" << dir_path;
-    ind.setDirectory(dir_path);
-    ind.moveToThread(thread.get());
-    connect(thread.get(), SIGNAL(started()), &ind, SLOT(getTrigrams()));
-    thread->start();
+    if (!path.isEmpty()) {
+        dir_path = path;
+        qDebug()<<"select directory" << dir_path;
+        ind.setDirectory(dir_path);
+        index_thread->start();
+    }
 }
 
-void main_window::findString() {
-    qDebug() << "find string" << ui->lineEdit->text();
-    disconnect(thread.get(), SIGNAL(started()), &ind, SLOT(getTrigrams()));
-    thread->start();
+void main_window::select_string() {
+    qDebug() << "select string" << ui->lineEdit->text();
+    fin.setString(ui->lineEdit->text());
     ui->treeWidget->clear();
-    QMap<QString, QStringList> result = ind.findString(ui->lineEdit->text());
+    search_thread->start();
+}
+
+void main_window::printFindStringResult() {
+    QMap<QString, QStringList> result = fin.getResultMap();
     QMapIterator<QString, QStringList> iter(result);
     QDir dir(dir_path);
     while(iter.hasNext()) {
@@ -65,9 +88,27 @@ void main_window::findString() {
         gr->setText(1, QString::number(QFile(iter.key()).size()));
         ui->treeWidget->addTopLevelItem(gr);
     }
-    qDebug() << "find string finished"  << ui->lineEdit->text();
+    qDebug() << "print result";
 }
 
 void main_window::open_file(QTreeWidgetItem *item){
     QDesktopServices::openUrl(QUrl("file:" + QDir(dir_path).absoluteFilePath(item->text(0))));
+}
+
+void main_window::stop_index_thread() {
+    if(index_thread != nullptr && index_thread->isRunning()){
+        index_thread->requestInterruption();
+        index_thread->quit();
+        index_thread->wait(); // TODO: what is it?
+        qDebug() << "index thread interrupted";
+    }
+}
+
+void main_window::stop_search_thread() {
+    if(search_thread != nullptr && search_thread->isRunning()){
+        search_thread->requestInterruption();
+        search_thread->quit();
+        search_thread->wait(); // TODO: what is it?
+        qDebug() << "search thread interrupted";
+    }
 }

@@ -15,5 +15,7 @@ add_executable(${PROJECT_NAME}
     "mainwindow.ui"
     "indexator.cpp"
     "indexator.h"
+    "finder.cpp"
+    "finder.h"
     "trigram.h")
 qt5_use_modules(${PROJECT_NAME} Widgets)
